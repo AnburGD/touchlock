@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Blokada Aplikacji</string>
+    <string name="service_name">Blokada Aplikacji – strażnik</string>
+    <string name="service_description">Sprawdza, która aplikacja jest otwierana, i pyta o PIN przy zablokowanych aplikacjach. Nie czyta treści ekranu ani tego, co piszesz.</string>
+</resources>
