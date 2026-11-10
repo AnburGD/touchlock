@@ -65,7 +65,7 @@ object Prefs {
     fun resetFails(c: Context) = p(c).edit().putInt(K_FAILS, 0).putLong(K_LOCKOUT, 0L).apply()
 
     // ---------- Aplikacje ----------
-    fun lockedApps(c: Context): Set<String> =
+    fun lockedApps(c: Context): MutableSet<String> =
         HashSet(p(c).getStringSet(K_LOCKED, emptySet()) ?: emptySet())
 
     fun setLocked(c: Context, pkg: String, locked: Boolean) {
