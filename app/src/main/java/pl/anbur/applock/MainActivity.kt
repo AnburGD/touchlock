@@ -176,6 +176,16 @@ class MainActivity : Activity() {
             startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
         }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(8) })
         card.addView(buttons, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(10) })
+        if (android.os.Build.MANUFACTURER.lowercase().let { it.contains("xiaomi") || it.contains("redmi") || it.contains("poco") }) {
+            card.addView(smallButton("Uprawnienia Xiaomi (okna w tle)") {
+                val i = Intent("miui.intent.action.APP_PERM_EDITOR")
+                    .setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity")
+                    .putExtra("extra_pkgname", packageName)
+                try { startActivity(i) } catch (_: Exception) {
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                }
+            }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(8) })
+        }
         header.addView(card, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14) })
 
         header.addView(switchRow("Blokada włączona", Prefs.isEnabled(this)) { Prefs.setEnabled(this, it) },
@@ -266,8 +276,16 @@ class MainActivity : Activity() {
 
     private fun updateStatus() {
         val sv = statusView ?: return
-        if (isServiceOn()) {
-            sv.text = "✅ Strażnik działa"
+        val err = Prefs.lastError(this)
+        if (isServiceOn() && !AppLockService.running) {
+            sv.text = "⚠️ Strażnik włączony w ustawieniach, ale NIE działa.\n" +
+                "Wyłącz go i włącz ponownie. Na Xiaomi: Autostart = wł., Bateria = Bez ograniczeń, " +
+                "Inne uprawnienia → „Wyświetlanie wyskakujących okien podczas działania w tle”." +
+                (if (err != null) "\n\nBłąd: $err" else "")
+            statusButton?.text = "Ustawienia dostępności"
+            restrictedHint?.visibility = View.GONE
+        } else if (isServiceOn()) {
+            sv.text = "✅ Strażnik działa" + (if (err != null) "\n\nOstatni błąd: $err" else "")
             statusButton?.text = "Ustawienia dostępności"
             restrictedHint?.visibility = View.GONE
         } else {

@@ -20,6 +20,9 @@ class AppLockService : AccessibilityService() {
         /** Aplikacja odblokowana PIN-em — wolna, dopóki z niej nie wyjdziesz albo nie zgaśnie ekran. */
         @Volatile var unlockedPackage: String? = null
 
+        /** Czy strażnik naprawdę działa (a nie tylko jest włączony w ustawieniach). */
+        @Volatile var running = false
+
         /** Pakiet okna instalatora/odinstalowywania (różny na różnych telefonach). */
         fun installerPackages(c: Context): Set<String> {
             val pm = c.packageManager
@@ -60,13 +63,20 @@ class AppLockService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        refreshRelevant()
-        val f = IntentFilter(Intent.ACTION_SCREEN_OFF)
-        if (Build.VERSION.SDK_INT >= 33) {
-            registerReceiver(screenOffReceiver, f, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(screenOffReceiver, f)
-        }
+        running = true
+        try { refreshRelevant() } catch (e: Throwable) { report("start/lista", e) }
+        try {
+            val f = IntentFilter(Intent.ACTION_SCREEN_OFF)
+            if (Build.VERSION.SDK_INT >= 33) {
+                registerReceiver(screenOffReceiver, f, Context.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(screenOffReceiver, f)
+            }
+        } catch (e: Throwable) { report("start/ekran", e) }
+    }
+
+    private fun report(where: String, e: Throwable) {
+        try { Prefs.setLastError(this, "$where: ${e.javaClass.simpleName}: ${e.message}") } catch (_: Throwable) {}
     }
 
     private fun refreshRelevant() {
@@ -84,6 +94,10 @@ class AppLockService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        try { handle(event) } catch (e: Throwable) { report("zdarzenie", e) }
+    }
+
+    private fun handle(event: AccessibilityEvent?) {
         if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
         if (pkg == packageName) return
@@ -116,12 +130,20 @@ class AppLockService : AccessibilityService() {
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_NO_ANIMATION
             )
-        startActivity(i)
+        try {
+            startActivity(i)
+        } catch (e: Throwable) { report("ekran PIN", e) }
     }
 
     override fun onInterrupt() {}
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        running = false
+        return super.onUnbind(intent)
+    }
+
     override fun onDestroy() {
+        running = false
         try { unregisterReceiver(screenOffReceiver) } catch (_: Exception) {}
         super.onDestroy()
     }

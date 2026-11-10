@@ -77,6 +77,9 @@ object Prefs {
     fun isEnabled(c: Context) = p(c).getBoolean(K_ENABLED, true)
     fun setEnabled(c: Context, v: Boolean) = p(c).edit().putBoolean(K_ENABLED, v).apply()
 
+    fun lastError(c: Context): String? = p(c).getString("last_error", null)
+    fun setLastError(c: Context, e: String?) = p(c).edit().putString("last_error", e).apply()
+
     fun protectInstaller(c: Context) = p(c).getBoolean(K_INSTALLER, false)
     fun setProtectInstaller(c: Context, v: Boolean) = p(c).edit().putBoolean(K_INSTALLER, v).apply()
 }
