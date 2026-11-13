@@ -64,6 +64,7 @@ class AppLockService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         running = true
+        if (isXiaomi()) try { goForeground() } catch (e: Throwable) { report("powiadomienie", e) }
         try { refreshRelevant() } catch (e: Throwable) { report("start/lista", e) }
         try {
             val f = IntentFilter(Intent.ACTION_SCREEN_OFF)
@@ -73,6 +74,36 @@ class AppLockService : AccessibilityService() {
                 registerReceiver(screenOffReceiver, f)
             }
         } catch (e: Throwable) { report("start/ekran", e) }
+    }
+
+    private fun isXiaomi() = Build.MANUFACTURER.lowercase().let {
+        it.contains("xiaomi") || it.contains("redmi") || it.contains("poco")
+    }
+
+    /** Stałe powiadomienie — MIUI nie zabija wtedy strażnika. */
+    private fun goForeground() {
+        val nm = getSystemService(android.app.NotificationManager::class.java)
+        val ch = "guard"
+        nm.createNotificationChannel(
+            android.app.NotificationChannel(ch, "Strażnik blokady", android.app.NotificationManager.IMPORTANCE_LOW)
+                .apply { setShowBadge(false) }
+        )
+        val open = android.app.PendingIntent.getActivity(
+            this, 0, Intent(this, MainActivity::class.java),
+            android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val n = android.app.Notification.Builder(this, ch)
+            .setSmallIcon(R.drawable.ic_lock)
+            .setContentTitle("Blokada aktywna")
+            .setContentText("Strażnik pilnuje zablokowanych aplikacji")
+            .setOngoing(true)
+            .setContentIntent(open)
+            .build()
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(1, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(1, n)
+        }
     }
 
     private fun report(where: String, e: Throwable) {

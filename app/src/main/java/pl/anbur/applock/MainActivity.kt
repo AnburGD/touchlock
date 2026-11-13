@@ -48,6 +48,9 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = Color.WHITE
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 1)
     }
 
     override fun onStart() {
@@ -279,7 +282,7 @@ class MainActivity : Activity() {
         val err = Prefs.lastError(this)
         if (isServiceOn() && !AppLockService.running) {
             sv.text = "⚠️ Strażnik włączony w ustawieniach, ale NIE działa.\n" +
-                "Wyłącz go i włącz ponownie. Na Xiaomi: Autostart = wł., Bateria = Bez ograniczeń, " +
+                "Wyłącz go i włącz ponownie. Na Xiaomi: zablokuj aplikację w ostatnich (kłódka), Autostart = wł., Bateria = Bez ograniczeń, " +
                 "Inne uprawnienia → „Wyświetlanie wyskakujących okien podczas działania w tle”." +
                 (if (err != null) "\n\nBłąd: $err" else "")
             statusButton?.text = "Ustawienia dostępności"
